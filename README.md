@@ -1,4 +1,4 @@
-# Anagram Solver 2
+# Anagram Solver
 
 A full-stack Anagram Solver built with **FastAPI** (Python) and **Vue.js** (Vite).
 
