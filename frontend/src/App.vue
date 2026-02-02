@@ -1,5 +1,7 @@
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import WordList from "./components/WordList.vue";
+import CustomButton from "./components/CustomButton.vue";
 
 const letters = ref("");
 const anagrams = ref([]);
@@ -25,15 +27,19 @@ const solve = async () => {
   });
 
   try {
-    const response = await fetch(
-      `http://127.0.0.1:8000/solve/${letters.value.trim()}`
-    );
+    const [response] = await Promise.all([
+      fetch(`http://127.0.0.1:8000/solve/${letters.value.trim()}`),
+      new Promise((resolve) => setTimeout(resolve, 500)), // 500ms minimum delay
+    ]);
+
     if (!response.ok) {
       const data = await response.json();
       throw new Error(data.detail || "Failed to solve");
     }
+
     const data = await response.json();
     anagrams.value = data.anagrams;
+
     if (anagrams.value.length === 0) {
       error.value = "No anagrams found";
     }
@@ -84,6 +90,15 @@ const copyToClipboard = async (word) => {
     error.value = "Failed to copy text";
   }
 };
+
+const wordConfigs = computed(() => [
+  { title: "Two letter words:", data: twos.value },
+  { title: "Three letter words:", data: threes.value },
+  { title: "Four letter words:", data: fours.value },
+  { title: "Five letter words:", data: fives.value },
+  { title: "Six letter words:", data: sixes.value },
+  { title: "Seven letter words:", data: sevens.value },
+]);
 </script>
 
 <template>
@@ -97,99 +112,24 @@ const copyToClipboard = async (word) => {
         placeholder="Enter letters (e.g., 'eat')"
         maxlength="7"
       />
-      <button @click="solve" :disabled="loading">
-        {{ loading ? "Solving..." : "Solve" }}
-      </button>
-      <button @click="reset" class="reset-button">Reset</button>
+      <CustomButton
+        :title="loading ? 'Solving...' : 'Solve'"
+        :loading="loading"
+        @click-action="solve"
+      />
+      <CustomButton title="Reset" bg-color="#b84242" @click-action="reset" />
     </div>
 
     <div v-if="error" class="error">
       {{ error }}
     </div>
-    <div v-if="twos.length > 0" class="results">
-      <h3>Two letter words:</h3>
-      <ul>
-        <li
-          v-for="word in twos"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
-    <div v-if="threes.length > 0" class="results">
-      <h3>Three letter words:</h3>
-      <ul>
-        <li
-          v-for="word in threes"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
-    <div v-if="fours.length > 0" class="results">
-      <h3>Four letter words:</h3>
-      <ul>
-        <li
-          v-for="word in fours"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
-    <div v-if="fives.length > 0" class="results">
-      <h3>Five letter words:</h3>
-      <ul>
-        <li
-          v-for="word in fives"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
-    <div v-if="sixes.length > 0" class="results">
-      <h3>Six letter words:</h3>
-      <ul>
-        <li
-          v-for="word in sixes"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
-    <div v-if="sevens.length > 0" class="results">
-      <h3>Seven letter words:</h3>
-      <ul>
-        <li
-          v-for="word in sevens"
-          :key="word"
-          @click="copyToClipboard(word)"
-          class="clickable-word"
-          title="Click to copy"
-        >
-          {{ word }}
-        </li>
-      </ul>
-    </div>
+    <WordList
+      v-for="list in wordConfigs"
+      :key="list.title"
+      :title="list.title"
+      :words="list.data"
+      @copy="copyToClipboard"
+    />
   </div>
 </template>
 
@@ -217,71 +157,8 @@ input {
   width: 250px;
 }
 
-button {
-  padding: 0.5rem 1rem;
-  font-size: 1.2rem;
-  background-color: #42b883;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.reset-button {
-  padding: 0.5rem 1rem;
-  font-size: 1.2rem;
-  background-color: #b84242;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
 .error {
   color: #e74c3c;
   margin-bottom: 1rem;
-}
-
-.results {
-  text-align: left;
-  background: #3b3b3b;
-  padding: 1rem;
-  margin: 8px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  color: #ffffff;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-li {
-  background: #525169;
-  padding: 0.3rem 0.8rem;
-  border-radius: 4px;
-  font-size: 1.1rem;
-}
-
-.clickable-word {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.clickable-word:hover {
-  text-decoration: underline;
-}
-
-.clickable-word:active {
-  transform: scale(0.95);
 }
 </style>
